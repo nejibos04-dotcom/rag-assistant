@@ -37,6 +37,31 @@ def extract_text_from_uploads(uploaded_files):
     return "\n\n".join(documents)
 
 
+def generate_with_fallback(api_key_value, prompt_text):
+    from google import genai
+
+    client = genai.Client(api_key=api_key_value.strip())
+    candidate_models = [
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+    ]
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt_text,
+            )
+            if getattr(response, "text", None):
+                return response.text, model_name
+        except Exception as exc:
+            last_error = exc
+            continue
+    raise RuntimeError(str(last_error))
+
+
 with st.sidebar:
     st.header("إعدادات المشروع")
     api_key = st.text_input(
@@ -86,9 +111,6 @@ if combined_text.strip():
 
         if api_key.strip():
             try:
-                from google import genai
-
-                client = genai.Client(api_key=api_key.strip())
                 context_block = "\n\n---\n\n".join([doc.page_content for doc in results])
                 prompt = (
                     "أجب بدقة ووضوح اعتماداً على السياق المرفق فقط. "
@@ -96,12 +118,10 @@ if combined_text.strip():
                     f"السياق:\n{context_block}\n\n"
                     f"السؤال:\n{query}"
                 )
-                interaction = client.interactions.create(
-                    model="gemini-3.8-flash",
-                    input=prompt,
-                )
+                answer_text, used_model = generate_with_fallback(api_key, prompt)
                 st.subheader("الإجابة المولّدة")
-                st.write(interaction.output_text)
+                st.caption(f"النموذج المستخدم: {used_model}")
+                st.write(answer_text)
             except Exception as exc:
                 st.warning(f"تعذر توليد إجابة عبر Gemini API ({exc}). تم عرض المقاطع المسترجعة:")
 
