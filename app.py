@@ -45,9 +45,9 @@ with st.sidebar:
         value=os.environ.get("GEMINI_API_KEY", ""),
         help="يمكنك تركه فارغاً لعرض المقاطع الأكثر صلة مباشرة من ملفاتك.",
     )
-    chunk_size = st.slider("حجم المقطع النصي (Chunk size)", 300, 1500, 700, 100)
-    chunk_overlap = st.slider("التداخل بين المقاطع (Overlap)", 0, 300, 100, 25)
-    top_k = st.slider("عدد المقاطع المسترجعة (Top K)", 1, 8, 3)
+    chunk_size = st.slider("حجم المقطع النصي (Chunk size)", 300, 1500, 900, 100)
+    chunk_overlap = st.slider("التداخل بين المقاطع (Overlap)", 0, 300, 150, 25)
+    top_k = st.slider("عدد المقاطع المسترجعة (Top K)", 1, 8, 4)
 
 uploaded_files = st.file_uploader(
     "ارفع ملفات البيانات (TXT, CSV, PDF)",
@@ -96,12 +96,12 @@ if combined_text.strip():
                     f"السياق:\n{context_block}\n\n"
                     f"السؤال:\n{query}"
                 )
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt,
+                interaction = client.interactions.create(
+                    model="gemini-3.8-flash",
+                    input=prompt,
                 )
                 st.subheader("الإجابة المولّدة")
-                st.write(response.text)
+                st.write(interaction.output_text)
             except Exception as exc:
                 st.warning(f"تعذر توليد إجابة عبر Gemini API ({exc}). تم عرض المقاطع المسترجعة:")
 
